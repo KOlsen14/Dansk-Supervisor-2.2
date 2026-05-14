@@ -1,0 +1,363 @@
+openapi: 3.0.3
+info:
+  title: Dansk Supervisor V2.2 GitHub API
+  version: 1.0.0
+  description: API for reading, validating, searching and storing text cards in a GitHub repository.
+servers:
+  - url: https://YOUR-DEPLOYED-API.example.com
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        service:
+          type: string
+          example: dansk-supervisor-github-api
+      required:
+        - ok
+        - service
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    ValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - valid
+        - errors
+    TextSummary:
+      type: object
+      properties:
+        text_id:
+          type: string
+        titel:
+          type: string
+        ophav:
+          type: string
+        "år":
+          type: string
+        medieform:
+          type: string
+        genre:
+          type: string
+        "primær_tekstkategori":
+          type: string
+        temaer:
+          type: array
+          items:
+            type: string
+        fp9_relevans:
+          type: string
+        status:
+          type: string
+          enum:
+            - verificeret
+            - "foreløbig"
+            - "kræver kilde"
+        sidst_opdateret:
+          type: string
+      required:
+        - text_id
+        - titel
+        - ophav
+        - "år"
+        - medieform
+        - genre
+        - "primær_tekstkategori"
+        - temaer
+        - fp9_relevans
+        - status
+        - sidst_opdateret
+    TextCard:
+      type: object
+      additionalProperties: false
+      properties:
+        text_id:
+          type: string
+        titel:
+          type: string
+        ophav:
+          type: string
+        rolle_ophav:
+          type: string
+        "år":
+          type: string
+        medieform:
+          type: string
+        genre:
+          type: string
+        platform_eller_kilde:
+          type: string
+        "primær_tekstkategori":
+          type: string
+        "sekundær_tekstkategori":
+          type: string
+        temaer:
+          type: array
+          items:
+            type: string
+        periode:
+          type: string
+        fp9_relevans:
+          type: string
+          enum:
+            - "høj"
+            - middel
+            - lav
+            - uklar
+        mulige_fordybelsesområder:
+          type: array
+          items:
+            type: string
+        kan_indgå_i_tekstopgivelser:
+          type: string
+          enum:
+            - ja
+            - nej
+            - "kræver vurdering"
+        anbefalet_brug:
+          type: string
+          enum:
+            - hovedtekst
+            - perspektivering
+            - supplerende materiale
+        klassifikationssikkerhed:
+          type: number
+          minimum: 0
+          maximum: 100
+        status:
+          type: string
+          enum:
+            - verificeret
+            - "foreløbig"
+            - "kræver kilde"
+        kilder:
+          type: array
+          items:
+            type: string
+        faglige_noter:
+          type: string
+        oprettet:
+          type: string
+        sidst_opdateret:
+          type: string
+      required:
+        - text_id
+        - titel
+        - "primær_tekstkategori"
+        - klassifikationssikkerhed
+        - status
+    SearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        filters:
+          type: object
+          properties:
+            primær_tekstkategori:
+              type: string
+            fp9_relevans:
+              type: string
+              enum:
+                - "høj"
+                - middel
+                - lav
+                - uklar
+            status:
+              type: string
+              enum:
+                - verificeret
+                - "foreløbig"
+                - "kræver kilde"
+      required:
+        - query
+    UpsertResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        text_id:
+          type: string
+        card:
+          $ref: '#/components/schemas/TextCard'
+      required:
+        - ok
+        - text_id
+        - card
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /texts:
+    get:
+      operationId: listTexts
+      summary: Return text summaries from texts/index.json
+      responses:
+        '200':
+          description: List of text summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TextSummary'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /texts/{text_id}:
+    get:
+      operationId: getText
+      summary: Get a single text card
+      parameters:
+        - name: text_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Text card found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextCard'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Text card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: upsertText
+      summary: Create or update a text card and refresh the index
+      parameters:
+        - name: text_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextCard'
+      responses:
+        '200':
+          description: Text card saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpsertResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /texts/search:
+    post:
+      operationId: searchTexts
+      summary: Search text summaries in the GitHub-backed index
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Matching text summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 20
+                items:
+                  $ref: '#/components/schemas/TextSummary'
+        '400':
+          description: Invalid search request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /texts/validate:
+    post:
+      operationId: validateText
+      summary: Validate a text card without saving it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextCard'
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
