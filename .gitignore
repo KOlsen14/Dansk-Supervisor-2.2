@@ -1,6 +1,7 @@
 node_modules
 dist
 .env
+.env.local
 tools
 pnpm-*.zip
 pnpm-workspace.yaml
