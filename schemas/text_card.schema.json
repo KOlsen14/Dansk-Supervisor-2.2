@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/text_card.schema.json",
+  "title": "TextCard",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "text_id": {
+      "type": "string"
+    },
+    "titel": {
+      "type": "string"
+    },
+    "ophav": {
+      "type": "string"
+    },
+    "rolle_ophav": {
+      "type": "string"
+    },
+    "år": {
+      "type": "string"
+    },
+    "medieform": {
+      "type": "string"
+    },
+    "genre": {
+      "type": "string"
+    },
+    "platform_eller_kilde": {
+      "type": "string"
+    },
+    "primær_tekstkategori": {
+      "type": "string"
+    },
+    "sekundær_tekstkategori": {
+      "type": "string"
+    },
+    "temaer": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "periode": {
+      "type": "string"
+    },
+    "fp9_relevans": {
+      "type": "string",
+      "enum": [
+        "høj",
+        "middel",
+        "lav",
+        "uklar"
+      ]
+    },
+    "mulige_fordybelsesområder": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "kan_indgå_i_tekstopgivelser": {
+      "type": "string",
+      "enum": [
+        "ja",
+        "nej",
+        "kræver vurdering"
+      ]
+    },
+    "anbefalet_brug": {
+      "type": "string",
+      "enum": [
+        "hovedtekst",
+        "perspektivering",
+        "supplerende materiale"
+      ]
+    },
+    "klassifikationssikkerhed": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "verificeret",
+        "foreløbig",
+        "kræver kilde"
+      ]
+    },
+    "kilder": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "faglige_noter": {
+      "type": "string"
+    },
+    "oprettet": {
+      "type": "string"
+    },
+    "sidst_opdateret": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "text_id",
+    "titel",
+    "primær_tekstkategori",
+    "klassifikationssikkerhed",
+    "status"
+  ]
+}
