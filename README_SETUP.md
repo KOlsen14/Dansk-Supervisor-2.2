@@ -1,27 +1,27 @@
-# Dansk Supervisor V2.2 GitHub API Setup
+# Dansk Supervisor V2.2 Supabase API Setup
 
 ## Formål
 
-Denne API fungerer som mellemled mellem Custom GPT'en og GitHub-repositoriet. GPT'en må ikke skrive direkte til GitHub. Den skal kalde denne API, som håndterer autentificering, validering og filopdateringer sikkert via miljøvariabler.
+Denne API fungerer som mellemled mellem Custom GPT'en og Supabase. GPT'en må ikke skrive direkte til databasen uden om API'en. Den skal kalde denne API, som håndterer autentificering, validering, søgning og lagring sikkert via miljøvariabler.
+
+GitHub er nu primært til kode, historik og deployment. Supabase er den dynamiske tekstdatabase.
 
 Som standard gemmes kun metadata, klassifikation, kilder og faglige noter. Hele ophavsretligt beskyttede tekster bør ikke gemmes her.
 
-## Output: hvad dette projekt faktisk giver dig
+## Output: hvad dette projekt giver dig nu
 
-Hvis du ikke har deployet endnu, er outputtet:
+Projektet giver dig:
 
-- en færdig Node/TypeScript-API
-- GitHub-baseret læsning og skrivning af tekstkort
-- validering og søgning
-- OpenAPI-spec til GPT Actions
+- en Node/TypeScript-API til GPT Actions
+- Supabase som primær datalagring
+- validering af tekstkort før lagring
+- søgning og læsning via faste endpoints
+- OpenAPI-spec til GPT Builder
+- SQL-schema til Supabase
 - CI-build i GitHub Actions
-- deploy-klargøring til både Render og Vercel
+- deploy-klargøring til Render og Vercel
 
-Det betyder:
-
-- projektet kan køre lokalt i Node
-- projektet kan buildes automatisk i GitHub
-- projektet mangler kun en offentlig URL, før GPT Actions kan bruge det direkte
+Det eneste, der mangler før GPT'en kan bruge løsningen live, er en offentlig deploy-URL og rigtige Supabase-miljøvariabler.
 
 ## 1. Installér afhængigheder
 
@@ -29,86 +29,107 @@ Det betyder:
 npm install
 ```
 
-## 2. Kør lokalt i udvikling
+## 2. Opret tabellen i Supabase
 
-```bash
-npm run dev
-```
+Kør SQL'en i:
 
-Standardporten er `3000`, medmindre du sætter `PORT` i `.env`.
+- `supabase/schema.sql`
 
-## 3. Opret GitHub fine-grained token
+Praktisk:
 
-Opret et fine-grained personal access token i GitHub med adgang til:
+1. Åbn Supabase SQL Editor
+2. Indsæt indholdet af `supabase/schema.sql`
+3. Kør scriptet
 
-- Repository: `KOlsen14/Dansk-Supervisor-2.2`
-- Permission: `Contents`
-- Access level: `Read and write`
+Det opretter tabellen `public.texts` og de vigtigste indeks.
 
-Tokenet skal kun bruges på serveren som `GITHUB_TOKEN`.
-
-## 4. Sæt `.env`
+## 3. Sæt `.env`
 
 Opret en `.env`-fil i projektroden med udgangspunkt i `.env.example`:
 
 ```env
-GITHUB_TOKEN=your_github_token_here
-GITHUB_OWNER=KOlsen14
-GITHUB_REPO=Dansk-Supervisor-2.2
-GITHUB_BRANCH=main
-ACTION_API_KEY=your_strong_secret_here
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=[REDACTED]
+SUPABASE_TEXTS_TABLE=texts
+ACTION_API_KEY=[REDACTED]
 PORT=3000
 ```
 
 Vigtigt:
 
-- `GITHUB_TOKEN` må aldrig ligge i frontend.
-- `GITHUB_TOKEN` må aldrig ligge i `openapi.yaml`.
-- `ACTION_API_KEY` er den nøgle, GPT Action sender som `Authorization: Bearer <ACTION_API_KEY>`.
+- `SUPABASE_SERVICE_ROLE_KEY` må kun bruges på serveren
+- `SUPABASE_SERVICE_ROLE_KEY` må aldrig ligge i frontend eller `openapi.yaml`
+- `ACTION_API_KEY` er den nøgle, GPT Action sender som bearer token
 
-## 5. Deploy API'en
+## 4. Kør lokalt
 
-API'en kan deployes på flere platforme:
+Udvikling:
+
+```bash
+npm run dev
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+Start bygget version:
+
+```bash
+npm run start
+```
+
+## 5. Hvad API'en kan læse
+
+API'en læser fra Supabase-tabellen `texts`.
+
+Det betyder konkret:
+
+- `GET /texts` returnerer summary-listen
+- `GET /texts/{text_id}` returnerer ét tekstkort
+- `POST /texts/search` søger i summary-felter
+- `POST /texts/validate` validerer uden at gemme
+
+## 6. Hvad API'en kan skrive
+
+API'en kan:
+
+- oprette et nyt tekstkort
+- opdatere et eksisterende tekstkort
+- gemme direkte i Supabase via upsert på `text_id`
+
+## 7. Deploy API'en
 
 ### Render
 
-- Opret en ny Web Service
-- Forbind repo eller upload projektet
-- Build command: `npm install && npm run build`
-- Start command: `npm run start`
-- Sæt miljøvariablerne i Render dashboardet
-- Repoet indeholder `render.yaml`, så Render kan læse standardopsætningen direkte
+- Repoet indeholder `render.yaml`
+- Forbind repoet i Render
+- Sæt miljøvariablerne
+- Deploy
 
-### Railway
+### Vercel
 
-- Opret et nyt projekt
-- Deploy fra repo
-- Sæt miljøvariablerne i Railway
-- Brug `npm run build` og `npm run start`
+- Repoet indeholder `api/index.ts` og `vercel.json`
+- Importér repoet i Vercel
+- Sæt miljøvariablerne
+- Deploy
 
-### Fly.io
+### Railway eller Fly.io
 
-- Opret app
-- Sæt secrets for miljøvariablerne
-- Kør som en almindelig Node-service
+- Brug almindelig Node-deploy
+- Sæt de samme miljøvariabler
 
-### Vercel serverless
+## 8. GitHub Actions build-check
 
-- Repoet indeholder nu `api/index.ts` og `vercel.json`
-- Det betyder, at projektet kan importeres direkte i Vercel som serverless API
-- Miljøvariablerne sættes i Vercel-projektet, aldrig i klienten
-
-Den stærkeste standardløsning her er stadig Render eller Railway, fordi det matcher en lille vedvarende Express-API direkte. Vercel er nu også en reel mulighed.
-
-## 6. GitHub Actions build-check
-
-Repoet indeholder også:
+Repoet indeholder:
 
 - `.github/workflows/ci.yml`
 
-Det giver en automatisk build-kontrol ved push og pull requests, så du hurtigere ser, hvis projektet går i stykker.
+Det giver automatisk build-kontrol ved push og pull requests.
 
-## 7. Indsæt `openapi.yaml` i GPT Builder
+## 9. Indsæt `openapi.yaml` i GPT Builder
 
 I GPT Builder:
 
@@ -122,58 +143,11 @@ I GPT Builder:
 Authorization: Bearer YOUR_ACTION_API_KEY
 ```
 
-Brug samme værdi som `ACTION_API_KEY` på serveren.
+## 10. Vigtig driftsregel for GPT'en
 
-## 8. Vigtig driftsregel for GPT'en
+GPT'en må først sige, at noget er gemt, når API'et faktisk har returneret succes.
 
-GPT'en må først sige, at noget er "gemt i GitHub", når API'et faktisk har returneret succes.
+Det betyder:
 
-Det betyder i praksis:
-
-- Ingen succesmelding før HTTP 200 fra `PUT /texts/{text_id}`
-- Hvis API'et returnerer fejl, skal GPT'en formulere det som en fejl eller en manglende lagring
-
-## Arkivprincip
-
-Projektets logik bør følge denne arbejdsdeling:
-
-- Det faste tekstarkiv styrer vurderinger og faglig baseline
-- Den dynamiske tekstdatabase udvider tekstkendskabet med nye tekstkort
-- Databasen bør primært gemme metadata, klassifikation, kilder og noter
-
-## Hvad API'en kan læse
-
-Når miljøvariablerne er sat korrekt, kan API'en læse:
-
-- `texts/index.json`
-- `texts/<text_id>.json`
-
-Det betyder konkret:
-
-- `GET /texts` læser hele indekslisten
-- `GET /texts/{text_id}` læser ét tekstkort
-- `POST /texts/search` søger i indeksdata
-- `POST /texts/validate` validerer uden at gemme
-
-## Hvad API'en kan skrive
-
-API'en kan også:
-
-- oprette `texts/<text_id>.json`
-- opdatere `texts/<text_id>.json`
-- opdatere `texts/index.json` samtidig
-
-## Endpoints
-
-- `GET /health`
-- `GET /texts`
-- `GET /texts/{text_id}`
-- `POST /texts/search`
-- `PUT /texts/{text_id}`
-- `POST /texts/validate`
-
-Alle endpoints kræver:
-
-```http
-Authorization: Bearer <ACTION_API_KEY>
-```
+- ingen succesmelding før HTTP 200 fra `PUT /texts/{text_id}`
+- fejl fra API'et skal formuleres som manglende lagring eller valideringsfejl
