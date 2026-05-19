@@ -1,10 +1,10 @@
 import "dotenv/config";
 
-import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
+import express, { type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 
-import { assertGithubConfig, fileExists, readJsonFile, writeJsonFile } from "./github";
+import { assertSupabaseConfig, getTextCardById, listTextSummaries, upsertTextCard } from "./supabase";
 import type { SearchFilters, TextCard, TextSummary } from "./types";
 import { parseSearchRequest, validateTextCard } from "./validation";
 
@@ -23,7 +23,7 @@ if (!parsedEnv.success) {
   );
 }
 
-assertGithubConfig();
+assertSupabaseConfig();
 
 const app = express();
 const actionApiKey = parsedEnv.data.ACTION_API_KEY;
@@ -31,26 +31,6 @@ const port = Number(parsedEnv.data.PORT ?? 3000);
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
-
-function getTextCardPath(textId: string): string {
-  return `texts/${textId}.json`;
-}
-
-function toSummary(card: TextCard, updatedAt: string): TextSummary {
-  return {
-    text_id: card.text_id,
-    titel: card.titel,
-    ophav: card.ophav ?? "",
-    år: card.år ?? "",
-    medieform: card.medieform ?? "",
-    genre: card.genre ?? "",
-    primær_tekstkategori: card.primær_tekstkategori,
-    temaer: card.temaer ?? [],
-    fp9_relevans: card.fp9_relevans ?? "",
-    status: card.status,
-    sidst_opdateret: updatedAt
-  };
-}
 
 function matchesFilters(summary: TextSummary, filters?: SearchFilters): boolean {
   if (!filters) {
@@ -115,13 +95,13 @@ app.use(authenticateRequest);
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    service: "dansk-supervisor-github-api"
+    service: "dansk-supervisor-supabase-api"
   });
 });
 
 app.get("/texts", async (_req, res, next) => {
   try {
-    const texts = await readJsonFile<TextSummary[]>("texts/index.json", []);
+    const texts = await listTextSummaries();
     res.json(texts);
   } catch (error) {
     next(error);
@@ -130,17 +110,7 @@ app.get("/texts", async (_req, res, next) => {
 
 app.get("/texts/:text_id", async (req, res, next) => {
   try {
-    const textId = req.params.text_id;
-    const filePath = getTextCardPath(textId);
-    const index = await readJsonFile<TextSummary[]>("texts/index.json", []);
-    const indexed = index.some((entry) => entry.text_id === textId);
-
-    if (!indexed && !(await fileExists(filePath))) {
-      res.status(404).json({ error: "Text card not found" });
-      return;
-    }
-
-    const textCard = await readJsonFile<TextCard | null>(filePath, null);
+    const textCard = await getTextCardById(req.params.text_id);
 
     if (!textCard) {
       res.status(404).json({ error: "Text card not found" });
@@ -165,10 +135,9 @@ app.post("/texts/search", async (req, res, next) => {
       return;
     }
 
-    const index = await readJsonFile<TextSummary[]>("texts/index.json", []);
     const { query, filters } = parsedRequest.data;
-
-    const results = index
+    const summaries = await listTextSummaries(filters);
+    const results = summaries
       .filter((summary) => matchesFilters(summary, filters))
       .map((summary) => ({
         summary,
@@ -196,7 +165,7 @@ app.put("/texts/:text_id", async (req, res, next) => {
       return;
     }
 
-    const existingCard = await readJsonFile<TextCard | null>(getTextCardPath(textId), null);
+    const existingCard = await getTextCardById(textId);
     const now = new Date().toISOString();
 
     const candidateCard: TextCard = {
@@ -216,22 +185,12 @@ app.put("/texts/:text_id", async (req, res, next) => {
       return;
     }
 
-    const commitMessage = `upsert text card: ${textId}`;
-    await writeJsonFile(getTextCardPath(textId), candidateCard, commitMessage);
-
-    const currentIndex = await readJsonFile<TextSummary[]>("texts/index.json", []);
-    const summary = toSummary(candidateCard, now);
-    const nextIndex = currentIndex.filter((entry) => entry.text_id !== textId);
-
-    nextIndex.push(summary);
-    nextIndex.sort((left, right) => left.text_id.localeCompare(right.text_id));
-
-    await writeJsonFile("texts/index.json", nextIndex, commitMessage);
+    const storedCard = await upsertTextCard(candidateCard);
 
     res.json({
       ok: true,
       text_id: textId,
-      card: candidateCard
+      card: storedCard
     });
   } catch (error) {
     next(error);
@@ -258,7 +217,7 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
 
 if (require.main === module) {
   app.listen(port, () => {
-    console.log(`dansk-supervisor-github-api listening on port ${port}`);
+    console.log(`dansk-supervisor-supabase-api listening on port ${port}`);
   });
 }
 
