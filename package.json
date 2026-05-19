@@ -1,15 +1,14 @@
 {
-  "name": "dansk-supervisor-github-api",
+  "name": "dansk-supervisor-text-api",
   "version": "1.0.0",
   "private": true,
-  "description": "GitHub-backed text card API for Dansk Supervisor V2.2",
+  "description": "Supabase-backed text card API for Dansk Supervisor V2.2",
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@octokit/rest": "^22.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
