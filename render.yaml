@@ -1,18 +1,16 @@
 services:
   - type: web
-    name: dansk-supervisor-github-api
+    name: dansk-supervisor-supabase-api
     runtime: node
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm run start
     envVars:
-      - key: GITHUB_TOKEN
+      - key: SUPABASE_URL
         sync: false
-      - key: GITHUB_OWNER
-        value: KOlsen14
-      - key: GITHUB_REPO
-        value: Dansk-Supervisor-2.2
-      - key: GITHUB_BRANCH
-        value: main
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_TEXTS_TABLE
+        value: texts
       - key: ACTION_API_KEY
         generateValue: true
