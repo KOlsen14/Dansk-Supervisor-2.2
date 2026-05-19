@@ -10,10 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      GITHUB_TOKEN: test-token
-      GITHUB_OWNER: KOlsen14
-      GITHUB_REPO: Dansk-Supervisor-2.2
-      GITHUB_BRANCH: main
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      SUPABASE_TEXTS_TABLE: texts
       ACTION_API_KEY: test-action-key
     steps:
       - name: Checkout
