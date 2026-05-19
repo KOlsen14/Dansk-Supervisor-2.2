@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Dansk Supervisor V2.2 GitHub API
-  version: 1.0.0
-  description: API for reading, validating, searching and storing text cards in a GitHub repository.
+  title: Dansk Supervisor V2.2 Supabase API
+  version: 2.0.0
+  description: API for reading, validating, searching and storing text cards in Supabase.
 servers:
   - url: https://YOUR-DEPLOYED-API.example.com
 security:
@@ -21,7 +21,7 @@ components:
           example: true
         service:
           type: string
-          example: dansk-supervisor-github-api
+          example: dansk-supervisor-supabase-api
       required:
         - ok
         - service
@@ -225,7 +225,7 @@ paths:
   /texts:
     get:
       operationId: listTexts
-      summary: Return text summaries from texts/index.json
+      summary: Return text summaries from Supabase
       responses:
         '200':
           description: List of text summaries
@@ -272,7 +272,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     put:
       operationId: upsertText
-      summary: Create or update a text card and refresh the index
+      summary: Create or update a text card in Supabase
       parameters:
         - name: text_id
           in: path
@@ -309,7 +309,7 @@ paths:
   /texts/search:
     post:
       operationId: searchTexts
-      summary: Search text summaries in the GitHub-backed index
+      summary: Search text summaries in Supabase
       requestBody:
         required: true
         content:
